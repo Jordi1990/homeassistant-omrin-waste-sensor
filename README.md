@@ -1,12 +1,10 @@
-[![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE.md)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/Jordi1990/homeassistant-omrin-waste-sensor)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 
-[![hacs][hacsbadge]][hacs]
+# Omrin waste sensor
 
-# Homeassistant custom component Omrin waste sensor
-
-Provides homeassistant sensors for Dutch waste collector Omrin.
+Provides sensors for Dutch waste collector Omrin.
 
 
 ### MANUAL INSTALLATION

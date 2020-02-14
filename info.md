@@ -1,8 +1,6 @@
-[![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE.md)
-
-[![hacs][hacsbadge]][hacs]
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/Jordi1990/homeassistant-omrin-waste-sensor)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 
 # Omrin waste sensor
 
