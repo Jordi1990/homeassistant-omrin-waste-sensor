@@ -1,6 +1,0 @@
-{
-  "name": "Omrin waste sensor",
-  "country": "NL",
-  "domains": ["sensor"],
-  "render_readme": true,
-}
