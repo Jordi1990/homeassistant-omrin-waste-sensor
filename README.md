@@ -26,7 +26,7 @@ Provides sensors for Dutch waste collector Omrin.
 
 ```Configuration.yaml:
 sensor:
-  - platform: omrin-waste
+  - platform: omrin_waste
     postalcode: 3262CD
     housenumber: 5
 ```

@@ -25,16 +25,33 @@ _LOGGER = logging.getLogger(__name__)
 appId = uuid.uuid1().__str__()
 
 # Post helper method
-def doPost(url, data):
-    request = requests.post(url, data)
+def doPost(url, data = None, jsonData = None):
+    if(data is None):    
+        request = requests.post(url, json=jsonData)
+    else:
+        request = requests.post(url, data=data)
+        
     if request.status_code != 200:
-        raise RequestException("Request failed with status code {0} and reason {1}".format(request.status_code, request.reason))
+        raise requests.RequestException("Request failed with status code {0} and reason {1}".format(request.status_code, request.reason))
     return json.loads(request.text)
 
 # Retrieve public key from API used to sign requests
 def fetchPublicKey():
-    response = doPost("https://api-omrin.freed.nl//Account/GetToken/", json={'AppId': appId, 'AppVersion': '', 'OsVersion': '', 'Platform': ''})
+    response = doPost("https://api-omrin.freed.nl//Account/GetToken/", jsonData={'AppId': appId, 'AppVersion': '', 'OsVersion': '', 'Platform': ''})
     return b64decode(response['PublicKey'])
+
+def getNextEmptyDate(calendar, type):
+    nextEmptyDate = next(filter(lambda x:x["Omschrijving"]==type, calendar), None)
+    datetimeObj = datetime.datetime.strptime(nextEmptyDate['Datum'], '%Y-%m-%dT%H:%M:%S')
+    return datetimeObj.strftime('%Y-%m-%d') 
+
+def getEmptyTypeOnDate(calendar, date):
+    date = date.strftime('%Y-%m-%dT00:00:00')
+    emptyEvent = next(filter(lambda x:x["Datum"]==date, calendar), None)
+    if emptyEvent is not None:
+        return emptyEvent['Omschrijving']
+    else:
+        return None
 
 # Retrieve calendar for given address
 def fetchCalendar(publicKey, postalCode, houseNumber):
@@ -47,8 +64,17 @@ def fetchCalendar(publicKey, postalCode, houseNumber):
     # Encode request
     base64EncodedRequest = b64encode(encryptedRequest).decode("utf-8")
 
-    response = doPost("https://api-omrin.freed.nl//Account/FetchAccount/" + appId, '"' + base64EncodedRequest + '"')   
-    return response['CalendarHomeV2']
+    response = doPost("https://api-omrin.freed.nl//Account/FetchAccount/" + appId, data='"' + base64EncodedRequest + '"')   
+    
+    calendar = response['CalendarHomeV2']
+    
+    nextBiobak = getNextEmptyDate(calendar, 'Biobak')
+    nextSortibak = getNextEmptyDate(calendar, 'Sortibak')
+    nextPapierbak = getNextEmptyDate(calendar, 'Papierbak')
+    typeToEmptyToday = getEmptyTypeOnDate(calendar, datetime.datetime.now())
+    typeToEmptyTomorrow = getEmptyTypeOnDate(calendar, datetime.datetime.now() + datetime.timedelta(days=1))
+    
+    return {'biobak': nextBiobak, 'sortibak': nextSortibak, 'papierbak': nextPapierbak, 'today': typeToEmptyToday, 'tomorrow': typeToEmptyTomorrow}
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
      _LOGGER.debug("Setting omrin waste sensor")
@@ -77,15 +103,19 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                 REQUEST_REFRESH_DEFAULT_IMMEDIATE,
             )
      )
+     
+     types = ['biobak', 'sortibak', 'papierbak', 'today', 'tomorrow']
 
      # Fetch initial data
      await coordinator.async_refresh()
 
-     async_add_entities(WasteEmptyDateSensor(coordinator, ent['Omschrijving']) for idx, ent
-                       in enumerate(coordinator.data))
+     async_add_entities(WasteEmptyDateSensor(coordinator, type) for idx, type
+                       in enumerate(types))
 
 
 class WasteEmptyDateSensor(Entity):
+    _state = None
+    
     def __init__(self, coordinator, type):
         self.coordinator = coordinator
         self._type = type
@@ -97,18 +127,22 @@ class WasteEmptyDateSensor(Entity):
 
     @property
     def state(self):
-        nextDateToEmpty = next(filter(lambda x:x["Omschrijving"]==self._type, self.coordinator.data), None)
-        datetimeObj = datetime.datetime.strptime(nextDateToEmpty['Datum'], '%Y-%m-%dT%H:%M:%S')
-        return datetimeObj.strftime('%Y-%m-%d')
-
-    @property
-    def device_class(self):
-        return 'timestamp'
+        return self.coordinator.data[self._type]
 
     @property
     def should_poll(self):
         """No need to poll. Coordinator notifies entity of updates."""
         return False
 
-    async def async_update(self):
+    async def async_update(self):    
         await self.coordinator.async_request_refresh()
+        
+    async def async_added_to_hass(self):
+        self.coordinator.async_add_listener(
+            self.async_write_ha_state
+        )
+
+    async def async_will_remove_from_hass(self):
+        self.coordinator.async_remove_listener(
+            self.async_write_ha_state
+        )
