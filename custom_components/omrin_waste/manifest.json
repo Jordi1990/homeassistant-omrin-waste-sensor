@@ -1,8 +1,9 @@
 {
-    "domain": "omrin-waste-sensor",
+    "domain": "omrin_waste",
     "name": "Omrin afval sensor",
     "documentation": "https://https://github.com/Jordi1990/homeassistant-omrin-waste-sensor",
     "dependencies": [],
     "codeowners": ["@Jordi1990"],
-    "requirements": []
+    "requirements": [],
+    "homeassistant": "0.105.2"
   }
