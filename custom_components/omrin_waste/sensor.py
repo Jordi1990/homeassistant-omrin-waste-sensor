@@ -40,7 +40,7 @@ def fetchPublicKey():
     response = doPost("https://api-omrin.freed.nl//Account/GetToken/", jsonData={'AppId': appId, 'AppVersion': '', 'OsVersion': '', 'Platform': ''})
     return b64decode(response['PublicKey'])
 
-def getNextEmptyDate(calendar, type):
+def getNextEmptyDate(calendar, type = None):
     if(type is None):
         nextEmptDate = next(calendar, None)
     else:
