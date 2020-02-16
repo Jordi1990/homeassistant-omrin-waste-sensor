@@ -92,7 +92,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
             # Run fetchCalendar async
             return await hass.async_add_executor_job(fetchCalendar, publicKey, postalcode, housenumber)
-        except request.RequestException:
+        except requests.RequestException:
             raise UpdateFailed
 
      coordinator = DataUpdateCoordinator(
