@@ -41,7 +41,10 @@ def fetchPublicKey():
     return b64decode(response['PublicKey'])
 
 def getNextEmptyDate(calendar, type):
-    nextEmptyDate = next(filter(lambda x:x["Omschrijving"]==type, calendar), None)
+    if(type is None):
+        nextEmptDate = next(calendar, None)
+    else:
+        nextEmptyDate = next(filter(lambda x:x["Omschrijving"]==type, calendar), None)
     datetimeObj = datetime.datetime.strptime(nextEmptyDate['Datum'], '%Y-%m-%dT%H:%M:%S')
     return datetimeObj.strftime('%Y-%m-%d') 
 
@@ -73,8 +76,9 @@ def fetchCalendar(publicKey, postalCode, houseNumber):
     nextPapierbak = getNextEmptyDate(calendar, 'Papierbak')
     typeToEmptyToday = getEmptyTypeOnDate(calendar, datetime.datetime.now())
     typeToEmptyTomorrow = getEmptyTypeOnDate(calendar, datetime.datetime.now() + datetime.timedelta(days=1))
+    typeToEmptyNext = getNextEmptyDate(calendar)
     
-    return {'biobak': nextBiobak, 'sortibak': nextSortibak, 'papierbak': nextPapierbak, 'today': typeToEmptyToday, 'tomorrow': typeToEmptyTomorrow}
+    return {'biobak': nextBiobak, 'sortibak': nextSortibak, 'papierbak': nextPapierbak, 'today': typeToEmptyToday, 'tomorrow': typeToEmptyTomorrow, 'next': typeToEmptyNext}
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
      _LOGGER.debug("Setting omrin waste sensor")
@@ -104,7 +108,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             )
      )
      
-     types = ['biobak', 'sortibak', 'papierbak', 'today', 'tomorrow']
+     types = ['biobak', 'sortibak', 'papierbak', 'today', 'tomorrow', 'next']
 
      # Fetch initial data
      await coordinator.async_refresh()
