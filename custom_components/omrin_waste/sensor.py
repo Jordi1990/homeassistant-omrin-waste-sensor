@@ -77,7 +77,7 @@ def fetchCalendar(publicKey, postalCode, houseNumber):
     typeToEmptyToday = getEmptyTypeOnDate(calendar, datetime.datetime.now())
     typeToEmptyTomorrow = getEmptyTypeOnDate(calendar, datetime.datetime.now() + datetime.timedelta(days=1))
     nextEmptyDate = getNextEmptyDate(calendar)
-    typeToEmptyNext = getEmptyOnDate(calendar, nextEmptyDate)
+    typeToEmptyNext = getEmptyTypeOnDate(calendar, nextEmptyDate)
     
     return {'biobak': nextBiobak, 'sortibak': nextSortibak, 'papierbak': nextPapierbak, 'today': typeToEmptyToday, 'tomorrow': typeToEmptyTomorrow, 'nextdate': nextEmptyDate, 'next': typeToEmptyNext}
 
@@ -92,7 +92,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
             # Run fetchCalendar async
             return await hass.async_add_executor_job(fetchCalendar, publicKey, postalcode, housenumber)
-        except ApiError:
+        except request.RequestException:
             raise UpdateFailed
 
      coordinator = DataUpdateCoordinator(
