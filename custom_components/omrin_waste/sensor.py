@@ -42,7 +42,7 @@ def fetchPublicKey():
 
 def getNextEmptyDate(calendar, type = None):
     if(type is None):
-        nextEmptDate = next(calendar, None)
+        nextEmptyDate = next(calendar, None)
     else:
         nextEmptyDate = next(filter(lambda x:x["Omschrijving"]==type, calendar), None)
     datetimeObj = datetime.datetime.strptime(nextEmptyDate['Datum'], '%Y-%m-%dT%H:%M:%S')
