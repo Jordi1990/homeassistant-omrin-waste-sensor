@@ -77,7 +77,7 @@ def fetchCalendar(publicKey, postalCode, houseNumber):
     typeToEmptyToday = getEmptyTypeOnDate(calendar, datetime.datetime.now())
     typeToEmptyTomorrow = getEmptyTypeOnDate(calendar, datetime.datetime.now() + datetime.timedelta(days=1))
     nextEmptyDate = getNextEmptyDate(calendar)
-    typeToEmptyNext = getEmptyTypeOnDate(calendar, nextEmptyDate)
+    typeToEmptyNext = getEmptyTypeOnDate(calendar, datetime.datetime.strptime(nextEmptyDate, '%Y-%m-%dT%H:%M:%S'))
     
     return {'biobak': nextBiobak, 'sortibak': nextSortibak, 'papierbak': nextPapierbak, 'today': typeToEmptyToday, 'tomorrow': typeToEmptyTomorrow, 'nextdate': nextEmptyDate, 'next': typeToEmptyNext}
 
