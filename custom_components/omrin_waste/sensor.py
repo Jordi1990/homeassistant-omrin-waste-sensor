@@ -3,6 +3,7 @@ import requests
 import uuid
 import json
 import datetime
+import locale
 
 from homeassistant.helpers import debounce, entity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -13,17 +14,16 @@ from rsa import key, common, pkcs1
 from Crypto.PublicKey import RSA
 from base64 import b64decode, b64encode
 
-REQUEST_REFRESH_DEFAULT_COOLDOWN = 10
-REQUEST_REFRESH_DEFAULT_IMMEDIATE = True
-
 CONF_POSTALCODE = 'postalcode'
 CONF_HOUSENUMBER = 'housenumber'
+CONF_DATEFORMAT = 'dateformat'
 
 _LOGGER = logging.getLogger(__name__)
 
 # Generate unique id
 appId = uuid.uuid1().__str__()
-
+#dateFormat = '%Y-%m-%d'
+dateFormat = '%a %d %b'
 
 # Post helper method
 def doPost(url, data=None, jsonData=None):
@@ -52,7 +52,8 @@ def getNextEmptyDate(calendar, type=None):
     else:
         nextEmptyDate = next(filter(lambda x: x["Omschrijving"] == type, calendar), None)
     datetimeObj = datetime.datetime.strptime(nextEmptyDate['Datum'], '%Y-%m-%dT%H:%M:%S')
-    return datetimeObj.strftime('%Y-%m-%d')
+    _LOGGER.debug(f"Dateformat in getNextEmptyDate: {dateFormat} = {datetimeObj.strftime(dateFormat)}")
+    return datetimeObj.strftime(dateFormat)
 
 
 # Retrieve container type on certain date
@@ -88,7 +89,7 @@ def parseCalendar(calendar):
     typeToEmptyToday = getEmptyTypeOnDate(calendar, datetime.datetime.now())
     typeToEmptyTomorrow = getEmptyTypeOnDate(calendar, datetime.datetime.now() + datetime.timedelta(days=1))
     nextEmptyDate = getNextEmptyDate(calendar)
-    typeToEmptyNext = getEmptyTypeOnDate(calendar, datetime.datetime.strptime(nextEmptyDate, '%Y-%m-%d'))
+    typeToEmptyNext = getEmptyTypeOnDate(calendar, datetime.datetime.strptime(nextEmptyDate, dateFormat))
 
     return {'biobak': nextBiobak, 'sortibak': nextSortibak, 'papierbak': nextPapierbak, 'today': typeToEmptyToday,
             'tomorrow': typeToEmptyTomorrow, 'nextdate': nextEmptyDate, 'next': typeToEmptyNext}
@@ -96,13 +97,14 @@ def parseCalendar(calendar):
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     _LOGGER.debug("Setting omrin waste sensor")
+    dateFormat = config.get(CONF_DATEFORMAT)
+    _LOGGER.debug(f"dateFormat: {dateFormat}")
     publicKey = await hass.async_add_executor_job(fetchPublicKey)
 
     async def async_update_data():
         try:
             postalcode = config.get(CONF_POSTALCODE)
             housenumber = config.get(CONF_HOUSENUMBER)
-
             # Run fetchCalendar async
             calendar = await hass.async_add_executor_job(fetchCalendar, publicKey, postalcode, housenumber)
             # TODO: Only run parse calendar every hour and fetch calendar once a day
@@ -115,39 +117,47 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         _LOGGER,
         name="sensor",
         update_method=async_update_data,
-        update_interval=datetime.timedelta(hours=1),
-        request_refresh_debouncer=debounce.Debouncer(
-            hass,
-            _LOGGER,
-            REQUEST_REFRESH_DEFAULT_COOLDOWN,
-            REQUEST_REFRESH_DEFAULT_IMMEDIATE,
-        )
+        update_interval=datetime.timedelta(hours=1)        
     )
 
-    types = ['biobak', 'sortibak', 'papierbak', 'today', 'tomorrow', 'nextdate', 'next']
+    types = [{'type':'biobak',  'friendlyName': 'GFT'}, {'type': 'sortibak', 'friendlyName': 'Restafval'}, {'type':'papierbak', 'friendlyName': 'Papier'}, {'type': 'today', 'friendlyName': 'Vandaag'}, {'type':'tomorrow', 'friendlyName': 'Morgen'}, {'type':'nextdate', 'friendlyName': 'Volgende datum'}, {'type':'next', 'friendlyName': 'Volgende'}]
 
     # Fetch initial data
     await coordinator.async_refresh()
 
-    async_add_entities(WasteEmptyDateSensor(coordinator, type) for idx, type
+    async_add_entities(WasteEmptyDateSensor(coordinator, type['type'], type['friendlyName']) for idx, type
                        in enumerate(types))
 
 
 class WasteEmptyDateSensor(Entity):
     _state = None
 
-    def __init__(self, coordinator, type):
+    def __init__(self, coordinator, type, friendlyName):
         self.coordinator = coordinator
         self._type = type
         self._name = f'omrin_{type}'
+        self._unique_id = self._name
 
     @property
     def name(self):
         return self._name
 
     @property
+    def unique_id(self):
+        return self._unique_id
+
+    @property
     def state(self):
         return self.coordinator.data[self._type]
+
+    @property
+    def device_state_attributes(self):
+        """Return attributes for the sensor."""
+        if self._type == "biobak" or self._type == "sortibak" or self._type == "papierbak":
+            stateDateTime = datetime.datetime.strptime(self.coordinator.data[self._type], dateFormat)
+            return {'timestamp': datetime.datetime.timestamp(stateDateTime)}
+        else:
+            return {}
 
     @property
     def should_poll(self):
