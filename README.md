@@ -1,3 +1,5 @@
+# Deprecated, implementation merged into https://github.com/pippyn/Home-Assistant-Sensor-Afvalbeheer
+
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Jordi1990/homeassistant-omrin-waste-sensor?include_prereleases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
